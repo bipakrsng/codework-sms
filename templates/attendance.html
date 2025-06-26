@@ -1,0 +1,115 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Mark Attendance</title>
+</head>
+<body>
+    <h2>Mark Your Attendance</h2>
+    <video id="video" width="320" height="240" autoplay></video>
+    <br/>
+    <button id="capture">Capture & Mark Attendance</button>
+    <p id="message"></p>
+    <br/>
+    <button onclick="window.location.href='/'">Home</button>
+
+    <script>
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('capture');
+        const messageP = document.getElementById('message');
+
+        // Access webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(e => alert('Webcam access denied.'));
+
+        captureBtn.onclick = async () => {
+            // Capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageBase64 = canvas.toDataURL('image/jpeg');
+
+            const res = await fetch('/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageBase64 })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                messageP.style.color = 'green';
+                messageP.textContent = data.message;
+            } else {
+                messageP.style.color = 'red';
+                messageP.textContent = data.message || 'Error occurred';
+            }
+        };
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Mark Attendance</title>
+</head>
+<body>
+    <h2>Mark Your Attendance</h2>
+    <video id="video" width="320" height="240" autoplay></video>
+    <p id="message"></p>
+    <br/>
+    <button onclick="window.location.href='/'">Home</button>
+
+    <script>
+        const video = document.getElementById('video');
+        const messageP = document.getElementById('message');
+        let intervalId = null;
+
+        // Access webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+
+                // Start sending frames every 3 seconds
+                intervalId = setInterval(() => {
+                    sendFrame();
+                }, 3000); // 3000ms = 3 seconds
+            })
+            .catch(e => alert('Webcam access denied.'));
+
+        async function sendFrame() {
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                return; // Video not ready
+            }
+
+            // Capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageBase64 = canvas.toDataURL('image/jpeg');
+
+            try {
+                const res = await fetch('/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageBase64 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    messageP.style.color = 'green';
+                    messageP.textContent = data.message;
+                } else {
+                    messageP.style.color = 'red';
+                    messageP.textContent = data.message || 'Error occurred';
+                }
+            } catch (err) {
+                console.error('Error sending frame:', err);
+                messageP.style.color = 'red';
+                messageP.textContent = 'Connection error';
+            }
+        }
+    </script>
+</body>
+</html>

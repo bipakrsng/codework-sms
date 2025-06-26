@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Register Face</title>
+</head>
+<body>
+    <h2>Register Yourself</h2>
+    <input type="text" id="name" placeholder="Enter your name" />
+    <br/><br/>
+    <video id="video" width="320" height="240" autoplay></video>
+    <br/>
+    <button id="capture">Capture & Register</button>
+    <p id="message"></p>
+
+    <script>
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('capture');
+        const messageP = document.getElementById('message');
+
+        // Access webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(e => alert('Webcam access denied.'));
+
+        captureBtn.onclick = async () => {
+            const name = document.getElementById('name').value.trim();
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+            // Capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageBase64 = canvas.toDataURL('image/jpeg');
+
+            const res = await fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, image: imageBase64 })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                messageP.style.color = 'green';
+                messageP.textContent = data.message;
+            } else {
+                messageP.style.color = 'red';
+                messageP.textContent = data.error || 'Error occurred';
+            }
+        };
+    </script>
+</body>
+</html>
