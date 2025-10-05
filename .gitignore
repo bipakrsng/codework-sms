@@ -1,3 +1,11 @@
 venv/
 __pycache__/
 node_modules/
+backend/api/__pycache__/*.pyc
+__pycache__/
+*.pyc
+dist/
+build/
+node_modules/
+.venv/
+. pytest_cache/

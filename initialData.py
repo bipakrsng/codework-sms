@@ -1,9 +1,11 @@
-from app import app,datastore
+from app import create_app, datastore
 from backend.models.models import db, User,Role
 from werkzeug.security import generate_password_hash
 
+app = create_app()
+
 with app.app_context():
-    db.create_all()
+    #db.create_all() need to revisit again
     datastore.find_or_create_role(name = "admin",description = "Administrator with full access")
     datastore.find_or_create_role(name = "student",description = "User is student with limited access")
     datastore.find_or_create_role(name = "teacher",description = "User is teacher with limited access")

@@ -3,6 +3,9 @@ from flask_security import UserMixin,RoleMixin
 from sqlalchemy import LargeBinary
 from datetime import datetime,timedelta
 IST = timedelta(hours=5, minutes=30)
+from sqlalchemy import Index
+from enum import Enum
+from decimal import Decimal
 
 db = SQLAlchemy()
 
@@ -28,6 +31,27 @@ class TeachersSubjects(db.Model, TimeStampMixin):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'),nullable = False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'),nullable = False)
 
+class StudentSubject(db.Model, TimeStampMixin):
+    __tablename__ = "student_subject"
+    id = db.Column(db.Integer, primary_key=True)
+
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey("class.id"), nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey("session.id"), nullable=True)  # optional
+
+    # Optional: core / elective marker
+    # enrollment_type = db.Column(
+    #     db.Enum("Core", "Elective", "Lab", name="enrollment_type"),
+    #     default="Core"
+    # )
+
+    __table_args__ = (
+        db.UniqueConstraint("student_id", "subject_id", "class_id", name="uq_student_subject_class"),
+    )
+
+
+
 class Role(db.Model,RoleMixin,TimeStampMixin):
     id = db.Column(db.Integer,primary_key = True)
     name = db.Column(db.String(50),unique = True)
@@ -38,7 +62,7 @@ class User(db.Model,TimeStampMixin,UserMixin):
     username = db.Column(db.String(50), unique=True, nullable=True)
     password = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(100),unique=True, nullable=False)
-    phone_number = db.Column(db.String(20))
+    phone_number = db.Column(db.String(20),unique=True)
     active = db.Column(db.Boolean,default = True)
     fs_uniquifier = db.Column(db.String(255), unique=True, nullable=False)
     last_login_at = db.Column(db.DateTime)
@@ -46,6 +70,7 @@ class User(db.Model,TimeStampMixin,UserMixin):
     student = db.relationship('Student', foreign_keys='Student.user_id', backref='user', uselist=False)
     parent = db.relationship('Parent', foreign_keys='Parent.user_id', backref='user', uselist=False)
     teacher = db.relationship('Teacher', foreign_keys='Teacher.user_id', backref='user', uselist=False)
+    classes = db.relationship('Class',foreign_keys='Class.deleted_by',backref='user',uselist=False)
 
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender')
     received_messages = db.relationship('Message', foreign_keys='Message.receiver_id', backref='receiver')
@@ -68,6 +93,7 @@ class Class(db.Model,TimeStampMixin):
     session_id = db.Column(db.Integer, db.ForeignKey('session.id'))
 
     students = db.relationship('Student', backref='class_')
+    
     timetable_entries = db.relationship('Timetable', backref='class_')
 
     __table_args__ = (
@@ -103,7 +129,7 @@ class Student(db.Model,TimeStampMixin):
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
     date_of_birth = db.Column(db.DateTime)
-    gender = db.Column(db.Enum('male', 'female', 'other'))
+    gender = db.Column(db.String(10))
     address_line1 = db.Column(db.String(100))
     address_line2 = db.Column(db.String(100))
     city = db.Column(db.String(50))
@@ -123,6 +149,13 @@ class Student(db.Model,TimeStampMixin):
     fees = db.relationship('Fee', backref='student')
     face_encodings = db.relationship('FaceEncoding', backref='student')
 
+
+    subjects = db.relationship(
+        "Subject",
+        secondary="student_subject",
+        backref=db.backref("students", lazy="dynamic")
+    )
+
     __table_args__=(
         db.UniqueConstraint('roll_number','class_id', name ='uq_rollno_class'),
     )
@@ -134,7 +167,7 @@ class Parent(db.Model,TimeStampMixin):
     last_name = db.Column(db.String(50))
     phone = db.Column(db.String(20))
     email = db.Column(db.String(100))
-    aadhar_number = db.Column(db.String(12), unique=True)
+    aadhaar_number = db.Column(db.String(12), unique=True)
     relationship = db.Column(db.String(50),nullable=False)  # e.g., Father, Mother, Guardian
 
     students = db.relationship('Student',backref='parent')  #one to many relationship
@@ -163,6 +196,18 @@ class Timetable(db.Model,TimeStampMixin):
     start_time = db.Column(db.Time)
     end_time = db.Column(db.Time)
 
+    @property
+    def duration(self):
+        return f"{self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')}"
+    
+    @property
+    def formatted_start_time_slot(self):
+        return self.start_time.strftime('%H:%M') if self.start_time else None
+    
+    @property
+    def formatted_end_time_slot(self):
+        return self.end_time.strftime('%H:%M') if self.end_time else None
+
 
 class Attendance(db.Model,TimeStampMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -175,6 +220,7 @@ class Attendance(db.Model,TimeStampMixin):
 class Grade(db.Model,TimeStampMixin):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teacher.id'), nullable=False)
     term = db.Column(db.String(50))
@@ -186,8 +232,8 @@ class Fee(db.Model,TimeStampMixin):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     amount_due = db.Column(db.Numeric(10, 2))
-    amount_paid = db.Column(db.Numeric(10, 2), default=0)
-    due_date = db.Column(db.Date)
+    amount_paid = db.Column(db.Numeric(10, 2), default=Decimal('0.00'))
+    due_date = db.Column(db.DateTime)
     payment_status = db.Column(db.Enum('Paid', 'Pending', 'Overdue'), default='Pending')
 
     payments = db.relationship('Payment', backref='fee')
@@ -196,12 +242,18 @@ class Fee(db.Model,TimeStampMixin):
 class Payment(db.Model,TimeStampMixin):
     id = db.Column(db.Integer, primary_key=True)
     fee_id = db.Column(db.Integer, db.ForeignKey('fee.id'), nullable=False)
+
+    provider = db.Column(db.String(32), default='razorpay', nullable=False)
+    order_id = db.Column(db.String(64), index=True)        # Razorpay order id
+    payment_id = db.Column(db.String(64), index=True)      # Razorpay payment id
+    transaction_id = db.Column(db.String(100), unique=True)  # optional external ref
+
     payment_method = db.Column(db.String(50))
-    transaction_id = db.Column(db.String(100))
     payment_date = db.Column(db.DateTime)
     amount_paid = db.Column(db.Numeric(10, 2))
     payment_status = db.Column(db.Enum('Successful', 'Failed', 'Pending'))
 
+Index('ix_payment_unique', Payment.provider, Payment.order_id, Payment.payment_id, unique=True)
 
 class Message(db.Model,TimeStampMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -218,14 +270,28 @@ class Notification(db.Model,TimeStampMixin):
     message = db.Column(db.Text)
     status = db.Column(db.Enum('Read', 'Unread'), default='Unread')
     delivery_method = db.Column(db.Enum('Email', 'Push', 'SMS'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    
 
 class FaceEncoding(db.Model,TimeStampMixin):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    encoding = db.Column(db.Text)  # Can store base64 or JSON of numpy array
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    encoding = db.Column(db.Text,nullable=False)  # Can store base64 or JSON of numpy array
+    encoding_hash = db.Column(db.String(64),nullable=False)
 
+    __table_args__ = (
+        db.UniqueConstraint('student_id', 'encoding_hash', name='_student_face_uc'),
+    )
 
+   
+   
+
+class Contact(db.Model, TimeStampMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)   # who saved this contact
+    contact_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)  # the actual user
+    custom_name = db.Column(db.String(100))  # name chosen by the owner
     
+
+    __table_args__ = (
+        db.UniqueConstraint('owner_id', 'contact_user_id', name='uq_owner_contact'),
+    )
