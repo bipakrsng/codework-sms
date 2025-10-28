@@ -20,9 +20,9 @@ from backend.embeddings import get_embedding_from_base64
 import razorpay,hmac,hashlib
 from decimal import Decimal
 
-import dlib
+# import dlib
 from PIL import Image
-import face_recognition
+# import face_recognition
 import pickle
 import json
 from sqlalchemy.exc import SQLAlchemyError
