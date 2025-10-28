@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 import login from '@/components/login.vue'
 import { decodeToken, logoutUser} from '@/utils/auth';
@@ -209,7 +209,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 });
 // router.beforeEach((to, from, next) => {
