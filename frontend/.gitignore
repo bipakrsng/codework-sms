@@ -28,3 +28,24 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+#python cache
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+#virtual environments
+venv/
+ENV/
+env/
+.venv/
+.env/
+
+
+#IDE /editors
+
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

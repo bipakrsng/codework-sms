@@ -42,32 +42,35 @@
                 aria-expanded="false">
                 Actions
     </button>
-    <ul class="dropdown-menu">
-      <li>
-        <button 
-          class="dropdown-item text-warning" 
-          @click="editTeacher(teacher)"
-          v-if="!teacher.deleted_at">
-          <i class="bi bi-pencil-square me-2"></i> Update
-        </button>
-      </li>
-      <li>
-        <button 
-          class="dropdown-item text-danger" 
-          @click="deleteTeacher(teacher.id)"
-          v-if="!teacher.deleted_at">
-          <i class="bi bi-trash me-2"></i> Delete
-        </button>
+          <ul class="dropdown-menu">
         <li>
-        <button 
-          class="dropdown-item text-warning" 
-          @click="restoreTeacher(teacher.id)"
-          v-if="teacher.deleted_at">
-          <i class="bi bi-pencil-square me-2"></i> Restore
-        </button>
-      </li>
-      </li>
-    </ul>
+          <button 
+            class="dropdown-item text-warning" 
+            @click="editTeacher(teacher)"
+            v-if="!teacher.deleted_at">
+            <i class="bi bi-pencil-square me-2"></i> Update
+          </button>
+        </li>
+
+        <li>
+          <button 
+            class="dropdown-item text-danger" 
+            @click="deleteTeacher(teacher.id)"
+            v-if="!teacher.deleted_at">
+            <i class="bi bi-trash me-2"></i> Delete
+          </button>
+        </li>
+
+        <li>
+          <button 
+            class="dropdown-item text-warning" 
+            @click="restoreTeacher(teacher.id)"
+            v-if="teacher.deleted_at">
+            <i class="bi bi-pencil-square me-2"></i> Restore
+          </button>
+        </li>
+      </ul>
+
   </div>
 </td>
 

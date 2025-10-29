@@ -15,18 +15,18 @@ export default defineConfig({
     host:'0.0.0.0',
     proxy: {
       '/api': {
-        target: 'http://10.24.133.91:5000',
+        target: 'http://10.41.162.130:5000',
         changeOrigin: true,
         // No rewrite needed since Flask already expects /api prefix
       },
       '/socket.io': {
-        target: 'http://10.24.133.91:5000',
+        target: 'http://10.41.162.130:5000',
         ws: true, // <-- IMPORTANT for WebSockets
       },
     },
     hmr: {
       protocol: 'ws',
-      host: '10.24.133.91',
+      host: '10.41.162.130',
       port: 5173,
     },
   },
